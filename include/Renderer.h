@@ -1,6 +1,7 @@
 #ifndef RENDERER_CLASS_H
 #define RENDERER_CLASS_H
 #include "SFML/Graphics.hpp"
+#include "Point.h"
 #include <vector>
 #include <iostream>
 
@@ -45,6 +46,10 @@ class MapRenderer : public Renderer
 {
 public:
     MapRenderer(std::vector<std::vector<int>> &map) : Renderer(map) { }
+    void drawPoints(vector<Point> &points)
+    {
+        this->points = points;
+    }
 
 private:
     void Draw() override
@@ -66,7 +71,18 @@ private:
                 Window->draw(rect);
             }
         }
+
+        for (const Point &p : points)
+        {
+            sf::CircleShape circle;
+            circle.setRadius(1);
+            circle.setPosition(p.x*pixelSize, p.y*pixelSize);
+            circle.setFillColor(sf::Color::Blue);
+            Window->draw(circle);
+        }
     }
+private:    
+    vector<Point> points;
 };
 
 class MaskRenderer : public Renderer
