@@ -8,6 +8,9 @@
 #include "Image.h"
 #include "Point.h"
 #include "NarrowFinder.h"
+#include "Convex.h"
+#include <thread>
+
 
 using namespace std;
 
@@ -57,7 +60,7 @@ void PrintComponents(const vector<vector<Point>>& components)
 
 vector<vector<int>> loadMap() 
 {
-    Image Img("res/10.png");
+    Image Img("res/Map2/2.png");
     return Img.getData();
 }
 
@@ -67,8 +70,9 @@ int main() {
     NarrowFinder narrowFinder(Map);
     vector<vector<float>> passageValues = narrowFinder.CalculatePassageValues();
     
-    MapRenderer renderer(Map);
-    renderer.Run();
-
+    // HeatMapRenderer renderer(passageValues, Map);
+    // thread HeatMapThread(&::HeatMapRenderer::Run, &renderer);
+    
+    // HeatMapThread.join();
     return 0;
 }

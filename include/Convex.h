@@ -21,6 +21,29 @@ private:
     }
 
 public:
+    static pair<Point, Point> ConvexToRect(const vector<Point> &Convex)
+    {
+        Point TopLeft = Convex[0];
+        Point BotRight = Convex[0];
+
+        for (const Point &p:Convex)
+        {
+            if (p.x<TopLeft.x)
+                TopLeft.x = p.x;
+
+            if (p.y<TopLeft.y)
+                TopLeft.y = p.y;
+
+            if (p.x>BotRight.x)
+                BotRight.x = p.x;
+
+            if (p.y>BotRight.y)
+                BotRight.y = p.y;           
+        }
+
+        return make_pair(TopLeft, BotRight);
+    } 
+
     static vector<Point> ConvexHull(vector<Point> P) {
         int n = P.size(), k = 0;
         vector<Point> H(2 * n);
@@ -44,6 +67,41 @@ public:
         return H;
     }
 
+    static pair<vector<Point>, vector<Point>> ClusterConvexPolygon(const vector<Point> &polygon, const vector<Point> &points) 
+    {
+        vector<Point> insidePoints;
+        vector<Point> outsidePoints;
+        int n = polygon.size();
+
+        for(const Point &point : points) {
+            int sign = 0;
+            bool inside = true;
+
+            for(int i = 0; i < n; ++i) {
+                int j = (i + 1) % n;
+                int cp = cross(polygon[i], polygon[j], point);
+
+                if(cp == 0) continue; // Nokta kenarda olabilir
+
+                int newSign = (cp > 0) ? 1 : -1;
+
+                if(sign == 0) {
+                    sign = newSign;
+                } else if(sign != newSign) {
+                    inside = false;
+                    break;
+                }
+            }
+
+            if(inside) {
+                insidePoints.push_back(point);
+            } else {
+                outsidePoints.push_back(point);
+            }
+        }
+
+        return make_pair(outsidePoints, insidePoints);
+    }
 };
 
 #endif

@@ -1,11 +1,31 @@
 #include "NarrowFinder.h"
+#include "Convex.h"
+#include "Renderer.h"
+#include <thread>
 
 vector<vector<float>> NarrowFinder::CalculatePassageValues()
 {
-    vector<vector<Point>> components = findConnectedComponents();
-    vector<vector<Point>> ForeignMatches = ForeignMatcher(components);
+    vector<vector<Point>> components = findConnectedComponents(this->Map);
+    vector<pair<Point,Point>> ForeignMatches = ForeignMatcher(components);
+    vector<pair<Point,Point>> InvaderMatches  = InvaderOwnMatcher(components);
 
-    vector<vector<float>> PassageValues = MatchesCollisionChecker(ForeignMatches);
+    std::vector<std::pair<Point, Point>> Matches;
+    Matches.reserve(ForeignMatches.size() + InvaderMatches.size());
+
+    Matches.insert(Matches.end(), ForeignMatches.begin(), ForeignMatches.end());
+    Matches.insert(Matches.end(), InvaderMatches.begin(), InvaderMatches.end());
+
+    vector<vector<float>> PassageValues = MatchesCollisionChecker(Matches);
+
+    HeatMapRenderer renderer(PassageValues, Map);
+    // for (auto& match : Matches)
+    // {
+    //     renderer.drawMatch(match.first, match.second);
+    // }
+    renderer.Run(); 
+   
+    // MapRenderer renderer(Map);
+    // renderer.Run();
 
     return PassageValues;
 }
@@ -41,21 +61,18 @@ int NarrowFinder::sumElements(const vector<vector<int>>& matrix) {
     return total;
 }
 
-vector<vector<Point>> NarrowFinder::ForeignMatcher(const vector<vector<Point>>& connectedComponents)
+vector<pair<Point,Point>> NarrowFinder::ForeignMatcher(const vector<vector<Point>>& connectedComponents)
 {
     int NumMatches = sumElements(Map);
-    vector<vector<Point>>ForeignMatches;
+    vector<pair<Point,Point>>ForeignMatches;
     ForeignMatches.reserve(NumMatches);
 
     if (connectedComponents.size() == 1)
-        return vector<vector<Point>>();
+        return vector<pair<Point,Point>>();
 
     //Her k�me i�in d�ng�
     for (int i = 0; i < connectedComponents.size(); i++)
     {
-        vector<vector<Point>> Coordinates = connectedComponents;
-
-        Coordinates[i] = vector<Point>();
         vector<Point>OtherUnits;
 
         //K�me d���nda kalan di�er koordinatlar�n birle�tirilmesi
@@ -77,6 +94,8 @@ vector<vector<Point>> NarrowFinder::ForeignMatcher(const vector<vector<Point>>& 
             ForeignMatches.push_back({ p, connectedComponents[i][j] });
         }
     }
+
+
     return ForeignMatches;
 }
 
@@ -114,7 +133,7 @@ vector<Point> NarrowFinder::bresenham(Point p0, Point p1) {
     return line;
 }
 
-vector<vector<float>> NarrowFinder::MatchesCollisionChecker(const vector<vector<Point>> &Matches)
+vector<vector<float>> NarrowFinder::MatchesCollisionChecker(const vector<pair<Point,Point>> &Matches)
 {
     vector<vector<float>> PassageValues(Map.size(), vector<float>(Map[0].size(),min(Map.size(),Map[0].size())));
 
@@ -124,9 +143,9 @@ vector<vector<float>> NarrowFinder::MatchesCollisionChecker(const vector<vector<
     for (int i=0; i < Matches.size(); i++)
     {
         bool flag = 0;
-        float distance = CalculateDistance(Matches[i][0], Matches[i][1]);
+        float distance = CalculateDistance(Matches[i].first, Matches[i].second);
 
-        vector<Point> midPoints = bresenham(Matches[i][0], Matches[i][1]);
+        vector<Point> midPoints = bresenham(Matches[i].first, Matches[i].second);
 
         for (int j = 0; j < midPoints.size(); j++)
         {
@@ -152,19 +171,21 @@ vector<vector<float>> NarrowFinder::MatchesCollisionChecker(const vector<vector<
     return PassageValues;
 }
 
-vector<vector<Point>> NarrowFinder::findConnectedComponents()
+vector<vector<Point>> NarrowFinder::findConnectedComponents(const vector<vector<int>> &Map, Point TopLeft, Point BotRight)
 {
     int rows = Map.size();
     int cols = Map[0].size();
 
+    if (BotRight.x == -1)
+        BotRight = {rows, cols};
+
     vector<vector<bool>> visited(rows, vector<bool>(cols, false));
     vector<vector<Point>> components;
 
-    // 8 y�n� temsil eden vekt�rleri ekleyelim: Sa�, alt, sol, �st, sa�-alt, sol-alt, sol-�st, sa�-�st
     vector<Point> directions = { {0, 1}, {1, 0}, {0, -1}, {-1, 0}, {1, 1}, {-1, 1}, {-1, -1}, {1, -1} };
 
-    for (int i = 0; i < rows; ++i) {
-        for (int j = 0; j < cols; ++j) {
+    for (int i = TopLeft.x; i < BotRight.x; ++i) {
+        for (int j = TopLeft.y; j < BotRight.y; ++j) {
             if (!visited[i][j] && Map[i][j] == 1) {
                 queue<Point> q;
                 vector<Point> currentComponent;
@@ -221,5 +242,57 @@ vector<vector<Point>> NarrowFinder::findConnectedComponents()
     return newComponents;
 }
 
-vector<vector<Point>> NarrowFinder::InvaderOwnMatcher(vector<vector<Point>> &Components)
+vector<pair<Point,Point>> NarrowFinder::InvaderOwnMatcher(const vector<vector<Point>> &connectedComponents)
+{
+    vector<Point>FreeSpace;
+         
+    for (int i=0; i<Map.size(); i++)
+    {
+        for (int j=0; j<Map[0].size(); j++)
+        {
+            if (Map[i][j]==0)
+                FreeSpace.push_back({i,j});
+        }
+    }
+
+    vector<Point> Convex = ConvexFinder::ConvexHull(FreeSpace);
+    pair<vector<Point>, vector<Point>> PolygonPoints = ConvexFinder::ClusterConvexPolygon(Convex, connectedComponents[0]);    
+
+    vector<vector<int>> InsidePointMap(Map.size(), vector<int>(Map[0].size(),0));
+
+    for(Point &p : PolygonPoints.second)
+    {
+        InsidePointMap[p.y][p.x] = 1;
+    }    
+
+    vector<vector<Point>> components_InvaderObstacle = findConnectedComponents(InsidePointMap);
+
+    components_InvaderObstacle.push_back(PolygonPoints.first);
+
+
+    return ForeignMatcher(components_InvaderObstacle);     
+}
+
+// vector<pair<Point, Point>> NarrowFinder::SemiInvaderOwnMatcher(const vector<vector<Point>> &connectedComponents)
+// {
+//     // FreeSpace'i daha öncede hesaplamıştık, burası düzenlenebilir
+//     vector<Point>FreeSpace;
+        
+//     for (int i=0; i<Map.size(); i++)
+//     {
+//         for (int j=0; j<Map[0].size(); j++)
+//         {
+//             if (Map[i][j]==0)
+//                 FreeSpace.push_back({i,j});
+//         }
+//     }   
+    
+//     for (int i=1; i<connectedComponents.size(); i++)
+//     {
+//         vector<Point> Convex = ConvexFinder::ConvexHull(connectedComponents[i]);
+//         pair<Point, Point> ConvexRect = ConvexFinder::ConvexToRect(Convex);
+
+      
+//     }    
+// }
 
