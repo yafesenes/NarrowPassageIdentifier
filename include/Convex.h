@@ -102,6 +102,21 @@ public:
 
         return make_pair(outsidePoints, insidePoints);
     }
+
+    // Konveks bir zarfın içerisinde bir noktanın olup olmadığını kontrol eder.
+    static bool isInsideConvex(const std::vector<Point> &convexHull, const Point &point) {
+        int n = convexHull.size();
+        for (int i = 0; i < n; ++i) {
+            // Her üç ardışık nokta için çapraz çarpım hesapla
+            int j = (i + 1) % n;
+
+            // Eğer çapraz çarpım negatifse, nokta dışarıdadır.
+            if (cross(convexHull[i], convexHull[j], point) < 0) {
+                return false;
+            }
+        }
+        return true; // Tüm çapraz çarpımlar pozitifse, nokta içeridedir.
+    }
 };
 
 #endif

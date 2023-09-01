@@ -12,7 +12,7 @@ using namespace std;
 class Line : public sf::Drawable
 {
 public:
-    Line(float p1x, float p1y, float p2x, float p2y, sf::Color color = sf::Color::White)
+    Line(float p1x, float p1y, float p2x, float p2y, sf::Color color = sf::Color::Black)
         : line {sf::Vertex(sf::Vector2f(p1x, p1y), color), sf::Vertex(sf::Vector2f(p2x, p2y), color)}{}
     sf::Vertex* getLine() { return line; }
 private:
@@ -31,13 +31,23 @@ protected:
     sf::RenderWindow* Window;
     vector<vector<int>> _Map;
     virtual void Draw() = 0;
+    float pixelSize;
+    const bool drawGrids;
+
+    vector<vector<Point>> points;
 
 public: 
-    Renderer(vector<vector<int>> &Map) : 
-        Height((float)Map.size() / (float)Map[0].size() * Width)
+    Renderer(vector<vector<int>> &Map, bool drawGrids = false) : 
+        Height((float)Map.size() / (float)Map[0].size() * Width), drawGrids(drawGrids)
     {
         _Map = Map;
         Window = new sf::RenderWindow(sf::VideoMode(Width, Height), "deneme");
+        pixelSize = (float)Width / (float)(_Map[0].size());
+    }
+
+    void drawPoints(vector<Point> &points)
+    {
+        this->points.push_back(points);
     }
     
     void Run()
@@ -53,108 +63,40 @@ public:
 
             Window->clear();
             Draw();
+            DrawGrids();
+            DrawPoints();
             Window->display();
-
         }    
     }
-};
-
-class MapRenderer : public Renderer
-{
-public:
-    MapRenderer(std::vector<std::vector<int>> &map) : Renderer(map) { }
-    void drawPoints(vector<Point> &points)
+protected:
+    void DrawPoints()
     {
-        this->points = points;
-    }
-
-private:
-    void Draw() override
-    {
-        float pixelSize = (float)Width / (float)(_Map[0].size());
-
-        for (int i = 0; i < _Map.size(); i++)
-        {
-            for (int j = 0; j < _Map[0].size(); j++)
+        for (int i = 0; i < points.size(); i++)
+            for (const Point &p : points[i])
             {
-                sf::RectangleShape rect(sf::Vector2f(pixelSize, pixelSize));
-                rect.setPosition(sf::Vector2f(pixelSize * j, pixelSize * i));
-
-                if (_Map[i][j] == 0)
-                    rect.setFillColor(sf::Color::White);
-                else
-                    rect.setFillColor(sf::Color::Red);
-
-                Window->draw(rect);
+                sf::CircleShape circle;
+                circle.setRadius(pixelSize);
+                circle.setPosition(p.x*pixelSize-circle.getRadius()+pixelSize/2, p.y*pixelSize-circle.getRadius()+pixelSize/2);
+                circle.setFillColor(sf::Color(getColorJet((float)(i+1) / (float)(points.size()+1))));
+                Window->draw(circle);
             }
-        }
-
-        for (const Point &p : points)
-        {
-            sf::CircleShape circle;
-            circle.setRadius(1);
-            circle.setPosition(p.x*pixelSize, p.y*pixelSize);
-            circle.setFillColor(sf::Color::Blue);
-            Window->draw(circle);
-        }
     }
-private:    
-    vector<Point> points;
-};
-
-class HeatMapRenderer : public Renderer
-{
-private:
-    const std::vector<std::vector<float>> _passageValues;
-    vector<Line> lines;
-    const bool drawGrids;
-public:
-    HeatMapRenderer(const std::vector<std::vector<float>>& passageValues, std::vector<std::vector<int>> &map, bool drawGrids = false) :
-        Renderer(map), _passageValues(passageValues), drawGrids(drawGrids) { }
-
-    void drawMatch(Point p1, Point p2)
+    void DrawGrids()
     {
-        float pixelSize = (float)Width / (float)(_Map[0].size());
-        lines.push_back({pixelSize*p1.x, pixelSize * p1.y, pixelSize * p2.x, pixelSize*p2.y, sf::Color::Blue});
-    }
-private:
-    void Draw() override
-    {
-        float pixelSize = (float)Width / (float)(_Map[0].size());
-
-        for (int i = 0; i < _Map.size(); i++)
+        if (drawGrids)
         {
-            for (int j = 0; j < _Map[0].size(); j++)
+            for (int i = 0; i < _Map.size(); i++)
             {
-                sf::RectangleShape rect(sf::Vector2f(pixelSize, pixelSize));
-                rect.setPosition(sf::Vector2f(pixelSize * j, pixelSize * i));
-                
-                if (drawGrids)
+                for (int j = 0; j < _Map[0].size(); j++)
                 {
                     Line vLine(pixelSize * j, 0, pixelSize * j, Height);
                     Line hLine(0, pixelSize*i, Width, pixelSize*i);
                     Window->draw(vLine);
                     Window->draw(hLine);
                 }
-
-                if (_Map[i][j]==1)
-                {
-                    rect.setFillColor(sf::Color(200,200,200)); 
-                    Window->draw(rect);
-                }                
-
-                else
-                {
-                    float normalizedValue = _passageValues[i][j] / min(_Map.size(),_Map[0].size());
-                    rect.setFillColor(getColorJet(1-normalizedValue));
-                    Window->draw(rect);
-                }
             }
         }
-        for (auto &line : lines)
-            Window->draw(line);
     }
-
     sf::Color getColorJet(float value)
     {
         float r, g, b;
@@ -196,21 +138,16 @@ private:
 
         return sf::Color(red, green, blue);
     }
-
 };
 
-
-class MaskRenderer : public Renderer
+class MapRenderer : public Renderer
 {
 public:
-    MaskRenderer(std::vector<std::vector<bool>>& binaryMask, std::vector<std::vector<int>> &map) :
-        Renderer(map), _binaryMask(binaryMask) { }
+    MapRenderer(std::vector<std::vector<int>> &map, bool drawGrids = false) : Renderer(map, drawGrids) { }
 
 private:
     void Draw() override
     {
-        float pixelSize = (float)Width / (float)(_Map[0].size());
-
         for (int i = 0; i < _Map.size(); i++)
         {
             for (int j = 0; j < _Map[0].size(); j++)
@@ -218,12 +155,8 @@ private:
                 sf::RectangleShape rect(sf::Vector2f(pixelSize, pixelSize));
                 rect.setPosition(sf::Vector2f(pixelSize * j, pixelSize * i));
 
-                if (_Map[i][j] == 0 && _binaryMask[i][j] == 0)
+                if (_Map[i][j] == 0)
                     rect.setFillColor(sf::Color::White);
-                else if(_Map[i][j] == 0 && _binaryMask[i][j] == 1)
-                    rect.setFillColor(sf::Color(250, 100, 0));
-                else if(_Map[i][j] == 1 && _binaryMask[i][j] == 0)
-                    rect.setFillColor(sf::Color(50, 50, 100));
                 else
                     rect.setFillColor(sf::Color::Red);
 
@@ -231,8 +164,56 @@ private:
             }
         }
     }
+};
+
+class HeatMapRenderer : public Renderer
+{
 private:
-    std::vector<std::vector<bool>> _binaryMask;
+    std::vector<std::vector<float>> _passageValues;
+    vector<Line> lines;
+    
+public:
+    HeatMapRenderer(std::vector<std::vector<int>> &map, bool drawGrids = false) :
+        Renderer(map, drawGrids)
+        {}
+
+    void drawMatches(std::vector<std::vector<float>>& passageValues)
+    {
+        _passageValues = passageValues;
+    }
+
+    void drawMatch(Point p1, Point p2)
+    {
+        float pixelSize = (float)Width / (float)(_Map[0].size());
+        lines.push_back({pixelSize*p1.x, pixelSize * p1.y, pixelSize * p2.x, pixelSize*p2.y, sf::Color::Red});
+    }
+private:
+    void Draw() override
+    {
+        for (int i = 0; i < _Map.size(); i++)
+        {
+            for (int j = 0; j < _Map[0].size(); j++)
+            {
+                sf::RectangleShape rect(sf::Vector2f(pixelSize, pixelSize));
+                rect.setPosition(sf::Vector2f(pixelSize * j, pixelSize * i));
+
+                if (_Map[i][j]==1)
+                {
+                    rect.setFillColor(sf::Color(200,200,200)); 
+                    Window->draw(rect);
+                }                
+
+                else
+                {
+                    float normalizedValue = _passageValues[i][j] / min(_Map.size(),_Map[0].size());
+                    rect.setFillColor(getColorJet(1-normalizedValue));
+                    Window->draw(rect);
+                }
+            }
+        }
+        for (auto &line : lines)
+            Window->draw(line);
+    }
 };
 
 #endif

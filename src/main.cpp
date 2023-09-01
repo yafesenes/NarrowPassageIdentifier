@@ -60,12 +60,22 @@ void PrintComponents(const vector<vector<Point>>& components)
 
 vector<vector<int>> loadMap() 
 {
-    Image Img("res/Map2/2.png");
+    Image Img("res/Map2/4.png");
     return Img.getData();
 }
 
 int main() {
     vector<vector<int>> Map = loadMap();
+
+    // for (int i = 390; i < Map.size(); i++)
+    // {
+    //     for (int j = 950; j < Map[0].size(); j++)
+    //     {
+    //         cout << Map[i][j] << " ";
+    //     }
+    //     cout << endl;
+    //     cout << endl;
+    // }
     
     NarrowFinder narrowFinder(Map);
     vector<vector<float>> passageValues = narrowFinder.CalculatePassageValues();
