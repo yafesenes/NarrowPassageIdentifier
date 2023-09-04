@@ -19,7 +19,7 @@ vector<vector<float>> NarrowFinder::CalculatePassageValues()
         for (int j=0; j<Map[0].size(); j++)
         {
             if (Map[i][j]==0)
-                FreeSpace.push_back({i,j});
+                FreeSpace.push_back({j, i});
         }
     }
 
@@ -40,10 +40,10 @@ vector<vector<float>> NarrowFinder::CalculatePassageValues()
     vector<vector<float>> PassageValuesEmpty(Map.size(), vector<float>(Map[0].size(), 500));
     Renderer->drawMatches(PassageValues);
 
-    for (auto& match : ForeignMatches)
-    {
-        Renderer->drawMatch(match.first, match.second);
-    }
+    // for (auto& match : ForeignMatches)
+    // {
+    //     Renderer->drawMatch(match.first, match.second);
+    // }
     Renderer->Run(); 
    
     // MapRenderer renderer(Map);

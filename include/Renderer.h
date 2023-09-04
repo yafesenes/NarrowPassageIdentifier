@@ -59,6 +59,12 @@ public:
             {
                 if (event.type == sf::Event::Closed)
                     Window->close();
+                // if (event.type == sf::Event::MouseMoved)
+                // {
+                //     sf::Vector2i mousePos = sf::Mouse::getPosition(*Window);
+                //     std::cout << "Mouse x: " << mousePos.x/pixelSize << " Mouse y: " << mousePos.y/pixelSize << std::endl;
+                // }
+
             }
 
             Window->clear();
@@ -185,7 +191,7 @@ public:
     void drawMatch(Point p1, Point p2)
     {
         float pixelSize = (float)Width / (float)(_Map[0].size());
-        lines.push_back({pixelSize*p1.x, pixelSize * p1.y, pixelSize * p2.x, pixelSize*p2.y, sf::Color::Red});
+        lines.push_back({pixelSize*p1.x + pixelSize/2, pixelSize * p1.y + pixelSize/2, pixelSize * p2.x + pixelSize/2, pixelSize*p2.y + pixelSize/2, sf::Color::Red});
     }
 private:
     void Draw() override

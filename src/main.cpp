@@ -60,7 +60,7 @@ void PrintComponents(const vector<vector<Point>>& components)
 
 vector<vector<int>> loadMap() 
 {
-    Image Img("res/Map2/4.png");
+    Image Img("res/Map2/2.png");
     return Img.getData();
 }
 
