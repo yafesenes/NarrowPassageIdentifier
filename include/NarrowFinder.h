@@ -9,6 +9,9 @@
 #include <memory>
 #include "Convex.h"
 #include "Renderer.h"
+#include <iostream>
+#include <thread>
+#include "TicToc.h"
 
 using namespace std;
 

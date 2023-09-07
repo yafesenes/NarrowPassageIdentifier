@@ -11,7 +11,6 @@
 #include "Convex.h"
 #include <thread>
 
-
 using namespace std;
 
 void PrintComponents(const vector<Point>& p)
@@ -60,7 +59,7 @@ void PrintComponents(const vector<vector<Point>>& components)
 
 vector<vector<int>> loadMap() 
 {
-    Image Img("res/Map2/2.png");
+    Image Img("res/Map2/15.png");
     return Img.getData();
 }
 

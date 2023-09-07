@@ -27,7 +27,7 @@ private:
 class Renderer
 {
 protected:
-    const unsigned int Width = 400, Height;
+    const unsigned int Width = 1200, Height;
     sf::RenderWindow* Window;
     vector<vector<int>> _Map;
     virtual void Draw() = 0;
@@ -69,8 +69,8 @@ public:
 
             Window->clear();
             Draw();
-            DrawGrids();
             DrawPoints();
+            DrawGrids();
             Window->display();
         }    
     }
@@ -181,17 +181,19 @@ private:
 public:
     HeatMapRenderer(std::vector<std::vector<int>> &map, bool drawGrids = false) :
         Renderer(map, drawGrids)
-        {}
+        {
+            _passageValues.resize(map.size(), std::vector<float>(map[0].size(), map.size()));
+        }
 
     void drawMatches(std::vector<std::vector<float>>& passageValues)
     {
         _passageValues = passageValues;
     }
 
-    void drawMatch(Point p1, Point p2)
+    void drawMatch(Point p1, Point p2, sf::Color color = sf::Color::Red)
     {
         float pixelSize = (float)Width / (float)(_Map[0].size());
-        lines.push_back({pixelSize*p1.x + pixelSize/2, pixelSize * p1.y + pixelSize/2, pixelSize * p2.x + pixelSize/2, pixelSize*p2.y + pixelSize/2, sf::Color::Red});
+        lines.push_back({pixelSize*p1.x + pixelSize/2, pixelSize * p1.y + pixelSize/2, pixelSize * p2.x + pixelSize/2, pixelSize*p2.y + pixelSize/2, color});
     }
 private:
     void Draw() override
@@ -212,6 +214,8 @@ private:
                 else
                 {
                     float normalizedValue = _passageValues[i][j] / min(_Map.size(),_Map[0].size());
+                    if (normalizedValue > 0.1)
+                        continue;
                     rect.setFillColor(getColorJet(1-normalizedValue));
                     Window->draw(rect);
                 }
