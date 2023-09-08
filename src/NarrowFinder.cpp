@@ -17,10 +17,14 @@ vector<vector<float>> NarrowFinder::CalculatePassageValues()
         }
     }
 
+    tic("YalnizForeign");
     vector<pair<Point,Point>> ForeignMatches = ForeignMatcher(components);
+    toc("YalnizForeign");
     // vector<pair<Point,Point>> InvaderMatches  = InvaderOwnMatcher(components[0], FreeSpace);
     
-    vector<pair<Point,Point>> SemiInvaderMatches = SemiInvaderOwnMatcher(components, componentsFilled); 
+    tic("YalnizSemi");
+    vector<pair<Point,Point>> SemiInvaderMatches = SemiInvaderOwnMatcher(components, componentsFilled);
+    toc("YalnizSemi");
 
     std::vector<std::pair<Point, Point>> Matches;
     // Matches.reserve(ForeignMatches.size() + InvaderMatches.size() + SemiInvaderMatches.size());
@@ -30,10 +34,19 @@ vector<vector<float>> NarrowFinder::CalculatePassageValues()
     // Matches.insert(Matches.end(), InvaderMatches.begin(), InvaderMatches.end());
     Matches.insert(Matches.end(), SemiInvaderMatches.begin(), SemiInvaderMatches.end());
 
+    
+
     vector<vector<float>> PassageValues = MatchesCollisionChecker(Matches);
-    // for (auto& match : SemiInvaderMatches)
+    
+    // for (auto& match : Matches)
     // {
     //     Renderer->drawMatch(match.first, match.second);
+    // }
+
+    // for (auto& match : Matches)
+    // {
+    //     vector<Point> points = {match.first, match.second};
+    //     Renderer->drawPoints(points);
     // }
 
     vector<vector<float>> PassageValuesEmpty(Map.size(), vector<float>(Map[0].size(), 500));
@@ -90,7 +103,10 @@ vector<pair<Point,Point>> NarrowFinder::ForeignMatcher(const vector<vector<Point
     ForeignMatches.reserve(NumMatches);
 
     if (connectedComponents.size() == 1)
+    {
+        toc("ForeignMatcher");
         return vector<pair<Point,Point>>();
+    }
 
     //Her kume icin dongu
     for (int i = 0; i < connectedComponents.size(); i++)
@@ -165,7 +181,10 @@ vector<vector<float>> NarrowFinder::MatchesCollisionChecker(const vector<pair<Po
     vector<vector<float>> PassageValues(Map.size(), vector<float>(Map[0].size(),min(Map.size(),Map[0].size())));
 
     if (Matches.size() == 0)
+    {
+        toc("MatchesCollisionChecker");
         return PassageValues;
+    }
 
     for (int i=0; i < Matches.size(); i++)
     {
@@ -323,6 +342,7 @@ vector<vector<Point>> NarrowFinder::findConnectedComponentsFree(const vector<vec
         {
             newComponents[i] = BorderPolygon(map, components[i], ComponentValue, refValue);
         }
+        toc("findConnectedComponentsFree");
         return newComponents;
     }
 
@@ -358,7 +378,6 @@ vector<Point> NarrowFinder::BorderPolygon(const vector<vector<int>> &map, vector
     return newComponent;
 }
 
-int recursion = 0;
 vector<pair<Point,Point>> NarrowFinder::InvaderOwnMatcher(const vector<Point> &connectedComponent, const vector<Point>&FreeSpace)
 {
     tic("InvaderOwnMatcher");
@@ -376,18 +395,6 @@ vector<pair<Point,Point>> NarrowFinder::InvaderOwnMatcher(const vector<Point> &c
 
     vector<vector<Point>> components_InvaderObstacle = findConnectedComponentsFree(InsidePointMap);
     vector<vector<Point>> components_InvaderObstacleFilled = findConnectedComponentsFree(InsidePointMap, false, 1, true);
-    // vector<vector<float>> PassageValuesEmpty(Map.size(), vector<float>(Map[0].size(), 500));
-    // Renderer->drawMatches(PassageValuesEmpty);
-    
-    // for(auto& p : components_InvaderObstacle)
-    // {
-    //     Renderer->drawPoints(p);
-    // }
-
-
-    // Renderer->Run();
-    // while (true);
-    recursion++;
 
     // tum ic componentleri birlestir
     std::vector<Point> insideComponents;
@@ -400,11 +407,6 @@ vector<pair<Point,Point>> NarrowFinder::InvaderOwnMatcher(const vector<Point> &c
         insideComponents.insert(insideComponents.end(), innerVector.begin(), innerVector.end());
     }
 
-    // for(auto& comp : components_inside_outside)
-    // {
-    //     comp = BorderPolygon(Map, comp, 1);
-    // }
-
     PolygonPoints.first = BorderPolygon(Map, PolygonPoints.first, 1);
 
     vector<vector<Point>> components_inside_outside = {insideComponents, PolygonPoints.first};
@@ -412,48 +414,12 @@ vector<pair<Point,Point>> NarrowFinder::InvaderOwnMatcher(const vector<Point> &c
     vector<pair<Point, Point>> outsideMatches = ForeignMatcher(components_inside_outside);
     vector<pair<Point, Point>> insideMatches = ForeignMatcher(components_InvaderObstacle);
 
-    // if (recursion == 1)
-    // {
-    //     // for (auto& p : components_inside_outside)
-    //     // {
-    //     //     Renderer->drawPoints(p);
-    //     // }
-    //     // Renderer->drawPoints(PolygonPoints.first);
-
-    //     cout <<"yafes"<<components_inside_outside.size() << endl;
-    //     cout <<"enes"<<components_inside_outside[0].size()<<endl;
-    //     cout <<"sahiner"<<components_inside_outside[1].size()<<endl;
-
-
-    //     for (auto& match : insideMatches)
-    //     {
-    //         Renderer->drawMatch(match.first, match.second);
-    //     }
-
-    //     for (auto& match : outsideMatches)
-    //     {
-    //         Renderer->drawMatch(match.first, match.second, sf::Color::Blue);
-    //     }
-
-    //     Renderer->drawPoints(Convex);
-    // }   
-
-    // HeatMapRenderer rend(Map);
-    // for (auto &i : components_InvaderObstacle)
-    // {
-    //     rend.drawPoints(i);
-    // }
-    // cout << "Convex sayisi: " << Convex.size() << endl;
-    // rend.drawPoints(Convex);
-    // rend.Run();
     vector<pair<Point, Point>> componenetSemiMatches = SemiInvaderOwnMatcher(components_InvaderObstacle, components_InvaderObstacleFilled);
-    
     vector<pair<Point, Point>> allInvaderMatches;
     allInvaderMatches.reserve(insideMatches.size() + outsideMatches.size());
     allInvaderMatches.insert(allInvaderMatches.end(), insideMatches.begin(), insideMatches.end());
     allInvaderMatches.insert(allInvaderMatches.end(), outsideMatches.begin(), outsideMatches.end());
     allInvaderMatches.insert(allInvaderMatches.end(), componenetSemiMatches.begin(), componenetSemiMatches.end());
-    
     toc("InvaderOwnMatcher");   
    return allInvaderMatches;
 }
@@ -463,7 +429,6 @@ vector<pair<Point, Point>> NarrowFinder::SemiInvaderOwnMatcher(const vector<vect
     tic("SemiInvaderOwnMatcher");
     vector<pair<Point, Point>> SemiInvaderMatches;
 
-    cout << "semi girdi, recursion: " << recursion << ", component size: " << connectedComponents.size() << endl;
     for (int i=0; i<connectedComponents.size(); i++)
     {
         vector<Point> Convex = ConvexFinder::ConvexHull(connectedComponents[i]);

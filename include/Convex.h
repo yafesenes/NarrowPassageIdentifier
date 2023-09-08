@@ -4,6 +4,7 @@
 #include "Point.h"
 #include <vector>
 #include <algorithm>
+#include "TicToc.h"
 
 using namespace std;
 
@@ -45,6 +46,7 @@ public:
     } 
 
     static vector<Point> ConvexHull(vector<Point> P) {
+        tic("ConvexHull");
         int n = P.size(), k = 0;
         vector<Point> H(2 * n);
 
@@ -64,6 +66,8 @@ public:
         }
 
         H.resize(k - 1);
+
+        toc("ConvexHull");
         return H;
     }
 

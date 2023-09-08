@@ -13,7 +13,12 @@ Image::Image(const std::string& filename) {
         for (int i = 0; i < height; ++i) {
             std::vector<int> row;
             for (int j = 0; j < width; ++j) {
-                int pixelValue = rawData[i * width + j] ? 0 : 1;
+                int pixelValue;
+                if (rawData[i*width + j] < 230)
+                    pixelValue = 1;
+                else
+                    pixelValue = 0;
+                // int pixelValue = rawData[i * width + j] ? 0 : 1;
                 row.push_back(pixelValue);
             }
             data.push_back(row);
@@ -36,7 +41,7 @@ void Image::writeBoolMatrixToPNG(const std::vector<std::vector<bool>>& data, con
             int index = (y * width + x) * 4;
 
             // Siyah-beyaz renk kodlaması
-            unsigned char color = data[y][x] ? 255 : 0;
+            unsigned char color = data[y][x] ? 255 : 0;          
 
             raw_data[index] = color;     // R
             raw_data[index + 1] = color; // G

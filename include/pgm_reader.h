@@ -50,7 +50,7 @@ public:
                 iss >> width >> height >> maxVal;
             }
 
-            //file.ignore(256, '\n');
+            // file.ignore(256, '\n');
 
             vector<vector<int>> pixels(height, vector<int>(width));
             for (int i = 0; i < height; i++)
@@ -74,10 +74,12 @@ public:
         {
             cout << "YAML badFile " << workingdir+yamlfile << endl;
         }
+
         catch (const YAML::ParserException& e)
         {
-            cout << "YAML parser exception" << endl;
+            cout << "YAML parser exception" << endl;            
         }
+
         catch (const YAML::Exception& e)
         {
             cout << "exception " << endl;

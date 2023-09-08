@@ -59,12 +59,38 @@ void PrintComponents(const vector<vector<Point>>& components)
 
 vector<vector<int>> loadMap() 
 {
-    Image Img("res/Map2/15.png");
-    return Img.getData();
+    Image Img("res/Map2/willow.png");
+    vector<vector<int>> map = Img.getData();
+    vector<vector<int>> newMap = map;
+
+    size_t rows = map.size();
+    size_t cols = map[0].size();
+    int inflation_radius = 2;
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            if (map[i][j] == 1) { // Obstacle detected
+                for (int dx = -inflation_radius; dx <= inflation_radius; ++dx) {
+                    for (int dy = -inflation_radius; dy <= inflation_radius; ++dy) {
+                        int new_x = i + dx;
+                        int new_y = j + dy;
+                        if (new_x >= 0 && new_x < rows && new_y >= 0 && new_y < cols) {
+                            newMap[new_x][new_y] = 1; // Inflate the obstacle
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return newMap;
+
+    // return pgmreader::readMap("res/RealMaps/","willow.yaml");
 }
 
 int main() {
     vector<vector<int>> Map = loadMap();
+    MapRenderer rend(Map);
+    rend.Run();
 
     // for (int i = 390; i < Map.size(); i++)
     // {

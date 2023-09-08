@@ -27,7 +27,7 @@ private:
 class Renderer
 {
 protected:
-    const unsigned int Width = 1200, Height;
+    const unsigned int Width = 900, Height;
     sf::RenderWindow* Window;
     vector<vector<int>> _Map;
     virtual void Draw() = 0;
@@ -214,7 +214,7 @@ private:
                 else
                 {
                     float normalizedValue = _passageValues[i][j] / min(_Map.size(),_Map[0].size());
-                    if (normalizedValue > 0.1)
+                    if (normalizedValue > 1)
                         continue;
                     rect.setFillColor(getColorJet(1-normalizedValue));
                     Window->draw(rect);
