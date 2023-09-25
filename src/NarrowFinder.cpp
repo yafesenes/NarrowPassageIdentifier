@@ -34,7 +34,6 @@ vector<vector<float>> NarrowFinder::CalculatePassageValues()
     // Matches.insert(Matches.end(), InvaderMatches.begin(), InvaderMatches.end());
     Matches.insert(Matches.end(), SemiInvaderMatches.begin(), SemiInvaderMatches.end());
 
-    
 
     vector<vector<float>> PassageValues = MatchesCollisionChecker(Matches);
     
@@ -98,7 +97,23 @@ int NarrowFinder::sumElements(const vector<vector<int>>& matrix) {
 vector<pair<Point,Point>> NarrowFinder::ForeignMatcher(const vector<vector<Point>>& connectedComponents)
 {
     tic("ForeignMatcher");
-    int NumMatches = sumElements(Map);
+
+    // dikdortgenleri hesapla
+    vector<pair<Point, Point>> rects;
+    rects.reserve(connectedComponents.size());
+    for (auto& component : connectedComponents)
+    {
+        if (component.size() > 0)
+        {
+            auto rect = ConvexFinder::ConvexToRect(component);
+            rects.push_back(rect);
+        }
+    }
+
+    int NumMatches = 0;
+    for (auto& i : connectedComponents)
+        NumMatches += i.size();
+
     vector<pair<Point,Point>>ForeignMatches;
     ForeignMatches.reserve(NumMatches);
 
@@ -108,26 +123,43 @@ vector<pair<Point,Point>> NarrowFinder::ForeignMatcher(const vector<vector<Point
         return vector<pair<Point,Point>>();
     }
 
+    RTree rtree = calculateRTree(rects);
+
     //Her kume icin dongu
     for (int i = 0; i < connectedComponents.size(); i++)
-    {
-        vector<Point>OtherUnits;
-
-        //K�me d���nda kalan di�er koordinatlar�n birle�tirilmesi
-        for (int j = 0; j < connectedComponents.size(); j++)
-        {
-            if (i == j)
-                continue;
-
-            for (int k = 0; k < connectedComponents[j].size(); k++)
-            {
-                OtherUnits.push_back(connectedComponents[j][k]);
-            }
-        }
+    {        
+        // vector<unsigned>OtherUnitsIndexesEski = getOtherUnitsEski(i, rects);
+        // int numOtherUnits = 0;
+        // for (auto& i : OtherUnitsIndexesEski)
+        //     numOtherUnits += connectedComponents[i].size();
+        
+        // vector<Point> OtherUnitsEski;
+        // OtherUnitsEski.reserve(numOtherUnits);
+        // for (auto& i : OtherUnitsIndexesEski)
+        //     for (auto& j : connectedComponents[i])
+        //         OtherUnitsEski.push_back(j);
 
         //K�medeki her noktan�n e�le�mesinin teker teker hesaplanmas�
         for (int j = 0; j < connectedComponents[i].size(); j++)
         {
+            vector<unsigned> OtherUnitsIndexes = getOtherUnits(rtree, connectedComponents[i][j], i);
+            int numOtherUnits = 0;
+            for (auto& i : OtherUnitsIndexes)
+                numOtherUnits += connectedComponents[i].size();
+            
+
+            Point p11 = connectedComponents[i][j];
+            pair<Point, Point> rectzz = {Point(p11.x - _thresholdValue,
+                                                p11.y - _thresholdValue),
+                                    Point(p11.x + _thresholdValue,
+                                                p11.y + _thresholdValue)};
+            vector<Point> OtherUnits;
+            OtherUnits.reserve(numOtherUnits);
+            for (auto& i : OtherUnitsIndexes)
+                for (auto& j : connectedComponents[i])
+                    if (j.x > rectzz.first.x && j.x < rectzz.second.x && j.y > rectzz.first.y && j.y < rectzz.second.y)
+                        OtherUnits.push_back(j);
+
             if (OtherUnits.size() == 0)
                 continue;
             Point p = FindNearest(OtherUnits, connectedComponents[i][j]);
@@ -137,6 +169,90 @@ vector<pair<Point,Point>> NarrowFinder::ForeignMatcher(const vector<vector<Point
 
     toc("ForeignMatcher");
     return ForeignMatches;
+}
+
+RTree NarrowFinder::calculateRTree(const vector<pair<Point, Point>>& rects)
+{
+    tic("calculateRTree");
+    RTree rtree;
+    int i = 0;
+    for (auto& rect : rects)
+    {
+        Box rectBox(RPoint(rect.first.x, rect.first.y), 
+                    RPoint(rect.second.x, rect.second.y));
+        rtree.insert(make_pair(rectBox, i++));
+    }
+
+    toc("calculateRTree");
+    return rtree;
+}
+
+vector<unsigned> NarrowFinder::getOtherUnits(const RTree& rtree, Point p, size_t componentIndex)
+{
+    tic("getOtherUnits");
+    Box queryBox(RPoint(p.x - _thresholdValue,
+                        p.y - _thresholdValue),
+                 RPoint(p.x + _thresholdValue,
+                        p.y + _thresholdValue));
+    std::vector<Value> result;
+    rtree.query(bgi::intersects(queryBox), std::back_inserter(result));
+
+    if (result.size() == 1)
+    {
+        toc("getOtherUnits");
+        return vector<unsigned>();
+    }
+
+    vector<unsigned> indexes(result.size()-1);
+    size_t j = 0;
+    for (int i = 0; i < result.size(); i++)
+    {
+        if (result[i].second == componentIndex)
+            continue;
+
+        // cout << "j: " << j << " result: " << i.second << " comp_index: " << componentIndex << " result_size: " << result.size() << endl;
+        indexes[j++] = result[i].second;
+    }
+
+    toc("getOtherUnits");
+    return indexes;
+}
+
+vector<unsigned> NarrowFinder::getOtherUnitsEski(size_t componentIndex, const vector<pair<Point, Point>>& rects)
+{
+    tic("getOtherUnits");
+    // RTree rtree;
+    // int i = 0;
+    // for (int j = 0; j < rects.size(); j++)
+    // {
+    //     if (j == componentIndex)
+    //         continue;
+    //     Box rectBox(RPoint(rects[j].first.x, rects[j].first.y), 
+    //                 RPoint(rects[j].second.x, rects[j].second.y));
+    //     rtree.insert(make_pair(rectBox, i++));
+    // }
+    // pair<Point, Point> rect = rects[componentIndex];
+    // Box queryBox(RPoint(rect.first.x - _thresholdValue,
+    //                     rect.first.y - _thresholdValue),
+    //              RPoint(rect.second.x + _thresholdValue,
+    //                     rect.second.y + _thresholdValue));
+    
+    // std::vector<Value> result;
+    // rtree.query(bgi::intersects(queryBox), std::back_inserter(result));
+    
+    // vector<unsigned> indexes(result.size());
+    // for (int i = 0; i < result.size(); i++)
+    // {
+    //     indexes[i] = result[i].second;
+    // }
+
+    vector<unsigned> indexes;
+    for (int i = 0; i < rects.size(); i++)
+        if (i != componentIndex)
+            indexes.push_back(i);
+
+    toc("getOtherUnits");
+    return indexes;
 }
 
 vector<Point> NarrowFinder::bresenham(Point p0, Point p1) {
@@ -342,6 +458,7 @@ vector<vector<Point>> NarrowFinder::findConnectedComponentsFree(const vector<vec
         {
             newComponents[i] = BorderPolygon(map, components[i], ComponentValue, refValue);
         }
+
         toc("findConnectedComponentsFree");
         return newComponents;
     }
@@ -350,7 +467,7 @@ vector<vector<Point>> NarrowFinder::findConnectedComponentsFree(const vector<vec
     return components;
 }
 
-vector<Point> NarrowFinder::BorderPolygon(const vector<vector<int>> &map, vector<Point> component, int ComponentValue, Point refValue)
+vector<Point> NarrowFinder::BorderPolygon(const vector<vector<int>> &map, const vector<Point>& component, int ComponentValue, Point refValue)
 {
     tic("BorderPolygon");
     std::vector<int> directionsX = {0, 1, 0, -1, 1, -1, 1, -1};
@@ -378,25 +495,37 @@ vector<Point> NarrowFinder::BorderPolygon(const vector<vector<int>> &map, vector
     return newComponent;
 }
 
+int recursion = 0;
 vector<pair<Point,Point>> NarrowFinder::InvaderOwnMatcher(const vector<Point> &connectedComponent, const vector<Point>&FreeSpace)
 {
     tic("InvaderOwnMatcher");
+    tic("invader1");
     vector<Point> Convex = ConvexFinder::ConvexHull(FreeSpace);
     if (Convex.size() == 0)
         cout << "Convex suan 0, Freespace: " << FreeSpace.size() << endl;
     pair<vector<Point>, vector<Point>> PolygonPoints = ConvexFinder::ClusterConvexPolygon(Convex, connectedComponent);    
+    toc("invader1");
 
     vector<vector<int>> InsidePointMap(Map.size(), vector<int>(Map[0].size(),0));
 
+    tic("invader111");
     for(Point &p : PolygonPoints.second)
     {
         InsidePointMap[p.y][p.x] = 1;
-    }    
+    }
+    toc("invader111");
 
-    vector<vector<Point>> components_InvaderObstacle = findConnectedComponentsFree(InsidePointMap);
+    tic("invader2");
     vector<vector<Point>> components_InvaderObstacleFilled = findConnectedComponentsFree(InsidePointMap, false, 1, true);
+    vector<vector<Point>> components_InvaderObstacle(components_InvaderObstacleFilled.size());
+    for (int i = 0; i < components_InvaderObstacle.size(); i++)
+    {
+        components_InvaderObstacle[i] = BorderPolygon(InsidePointMap, components_InvaderObstacleFilled[i], 1, {0, 0});
+    }
+    toc("invader2");
 
     // tum ic componentleri birlestir
+    tic("invader3");
     std::vector<Point> insideComponents;
     size_t totalPoints = 0;
     for (const auto& innerVector : components_InvaderObstacle) {
@@ -406,20 +535,31 @@ vector<pair<Point,Point>> NarrowFinder::InvaderOwnMatcher(const vector<Point> &c
     for (const auto& innerVector : components_InvaderObstacle) {
         insideComponents.insert(insideComponents.end(), innerVector.begin(), innerVector.end());
     }
+    toc("invader3");
 
+    tic("invader555");
     PolygonPoints.first = BorderPolygon(Map, PolygonPoints.first, 1);
+    toc("invader555");
 
+    tic("invader4");
     vector<vector<Point>> components_inside_outside = {insideComponents, PolygonPoints.first};
 
     vector<pair<Point, Point>> outsideMatches = ForeignMatcher(components_inside_outside);
     vector<pair<Point, Point>> insideMatches = ForeignMatcher(components_InvaderObstacle);
 
-    vector<pair<Point, Point>> componenetSemiMatches = SemiInvaderOwnMatcher(components_InvaderObstacle, components_InvaderObstacleFilled);
     vector<pair<Point, Point>> allInvaderMatches;
     allInvaderMatches.reserve(insideMatches.size() + outsideMatches.size());
+    toc("invader4");
+    recursion++;
+    if (recursion < 1)
+    {
+        vector<pair<Point, Point>> componenetSemiMatches = SemiInvaderOwnMatcher(components_InvaderObstacle, components_InvaderObstacleFilled);
+        allInvaderMatches.insert(allInvaderMatches.end(), componenetSemiMatches.begin(), componenetSemiMatches.end());
+    }
+    tic("invader5");
     allInvaderMatches.insert(allInvaderMatches.end(), insideMatches.begin(), insideMatches.end());
     allInvaderMatches.insert(allInvaderMatches.end(), outsideMatches.begin(), outsideMatches.end());
-    allInvaderMatches.insert(allInvaderMatches.end(), componenetSemiMatches.begin(), componenetSemiMatches.end());
+    toc("invader5");
     toc("InvaderOwnMatcher");   
    return allInvaderMatches;
 }
@@ -463,6 +603,7 @@ vector<pair<Point, Point>> NarrowFinder::SemiInvaderOwnMatcher(const vector<vect
             {                
                 if (ClusterFreeInPolygon[j].size() < 3)
                     continue;
+
                 vector<pair<Point, Point>> Matches = InvaderOwnMatcher(connectedComponentsFilled[i], ClusterFreeInPolygon[j]);
                 SemiInvaderMatches.insert(SemiInvaderMatches.end(), Matches.begin(), Matches.end());
             }

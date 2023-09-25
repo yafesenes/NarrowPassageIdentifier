@@ -3,11 +3,11 @@
 #include <queue>
 #include <cmath>
 #include <float.h>
+#include "NarrowFinder.h"
 #include "Renderer.h"
 #include "pgm_reader.h"
 #include "Image.h"
 #include "Point.h"
-#include "NarrowFinder.h"
 #include "Convex.h"
 #include <thread>
 
@@ -59,7 +59,7 @@ void PrintComponents(const vector<vector<Point>>& components)
 
 vector<vector<int>> loadMap() 
 {
-    Image Img("res/Map2/willow.png");
+    Image Img("res/willow.png");
     vector<vector<int>> map = Img.getData();
     vector<vector<int>> newMap = map;
 
@@ -89,8 +89,6 @@ vector<vector<int>> loadMap()
 
 int main() {
     vector<vector<int>> Map = loadMap();
-    MapRenderer rend(Map);
-    rend.Run();
 
     // for (int i = 390; i < Map.size(); i++)
     // {
@@ -102,7 +100,7 @@ int main() {
     //     cout << endl;
     // }
     
-    NarrowFinder narrowFinder(Map);
+    NarrowFinder narrowFinder(Map, 10);
     vector<vector<float>> passageValues = narrowFinder.CalculatePassageValues();
     
     // HeatMapRenderer renderer(passageValues, Map);

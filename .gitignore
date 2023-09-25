@@ -1,3 +1,5 @@
 .vscode/
-res/
 build/
+lib/
+.cache/
+res/
