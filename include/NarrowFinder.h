@@ -6,6 +6,7 @@
 #include <boost/geometry/geometries/box.hpp>
 #include <boost/geometry/index/predicates.hpp>
 #include <boost/geometry/index/rtree.hpp>
+#include <opencv2/opencv.hpp>
 #include <iostream>
 #include <thread>
 #include <vector>
@@ -40,14 +41,11 @@ private:
         return sqrt(pow(p0.x - p1.x, 2) + pow(p0.y - p1.y, 2));
     }
 
-    vector<vector<Point>> findConnectedComponents(const vector<vector<int>> &Map, Point TopLeft = {0, 0}, Point BotRight = {-1, -1}, int ComponentValue = 1);
     vector<vector<Point>> findConnectedComponentsFree(const vector<vector<int>> &map, bool dir4 = false, int ComponentValue = 1, bool Filled = false, Point refValue = {0, 0});
     Point FindNearest(const vector<Point>& OtherUnits, Point point);
-    int sumElements(const vector<vector<int>>& matrix);
-    vector<pair<Point,Point>> ForeignMatcher(const vector<vector<Point>>& connectedComponents);    
+    vector<pair<Point,Point>> ForeignMatcher(const vector<vector<Point>>& connectedComponents);
     RTree calculateRTree(const vector<pair<Point, Point>>& rects);
     vector<unsigned> getOtherUnits(const RTree& rtree, Point p, size_t componentIndex);
-    vector<unsigned> getOtherUnitsEski(size_t componentIndex, const vector<pair<Point, Point>>& rects);
     vector<Point> bresenham(Point p0, Point p1);
     vector<vector<float>> MatchesCollisionChecker(const vector<pair<Point,Point>> &Matches);
     vector<pair<Point,Point>> InvaderOwnMatcher(const vector<Point> &connectedComponent, const vector<Point>& FreeSpace);

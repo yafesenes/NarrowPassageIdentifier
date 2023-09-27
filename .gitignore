@@ -3,3 +3,6 @@ build/
 lib/
 .cache/
 res/
+.idea/
+sonuclar.txt
+cmake-build-debug/

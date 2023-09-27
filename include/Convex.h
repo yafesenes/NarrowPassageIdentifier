@@ -39,11 +39,11 @@ public:
                 BotRight.x = p.x;
 
             if (p.y>BotRight.y)
-                BotRight.y = p.y;           
+                BotRight.y = p.y;
         }
 
         return make_pair(TopLeft, BotRight);
-    } 
+    }
 
     static vector<Point> ConvexHull(vector<Point> P) {
         tic("ConvexHull");
@@ -71,18 +71,16 @@ public:
         return H;
     }
 
-    static pair<vector<Point>, vector<Point>> ClusterConvexPolygon(const vector<Point> &polygon, const vector<Point> &points) 
+    static void ClusterConvexPolygon(const vector<Point> &polygon, const vector<Point> &points, pair<vector<Point>, vector<Point>>& PolygonPoints)
     {
-        vector<Point> insidePoints;
-        vector<Point> outsidePoints;
-        int n = polygon.size();
+        size_t n = polygon.size();
 
         for(const Point &point : points) {
             int sign = 0;
             bool inside = true;
 
-            for(int i = 0; i < n; ++i) {
-                int j = (i + 1) % n;
+            for(size_t i = 0; i < n; ++i) {
+                size_t j = (i + 1) % n;
                 int cp = cross(polygon[i], polygon[j], point);
 
                 if(cp == 0) continue; // Nokta kenarda olabilir
@@ -98,21 +96,19 @@ public:
             }
 
             if(inside) {
-                insidePoints.push_back(point);
+                PolygonPoints.second.push_back(point);
             } else {
-                outsidePoints.push_back(point);
+                PolygonPoints.first.push_back(point);
             }
         }
-
-        return make_pair(outsidePoints, insidePoints);
     }
 
     // Konveks bir zarfın içerisinde bir noktanın olup olmadığını kontrol eder.
     static bool isInsideConvex(const std::vector<Point> &convexHull, const Point &point) {
-        int n = convexHull.size();
-        for (int i = 0; i < n; ++i) {
+        size_t n = convexHull.size();
+        for (size_t i = 0; i < n; ++i) {
             // Her üç ardışık nokta için çapraz çarpım hesapla
-            int j = (i + 1) % n;
+            size_t j = (i + 1) % n;
 
             // Eğer çapraz çarpım negatifse, nokta dışarıdadır.
             if (cross(convexHull[i], convexHull[j], point) < 0) {

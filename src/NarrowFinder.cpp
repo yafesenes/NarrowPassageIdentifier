@@ -3,19 +3,14 @@
 vector<vector<float>> NarrowFinder::CalculatePassageValues()
 {
     tic("CalculatePassageValues");
+
+//    İki kere bu işlemi yapmamız mantıksız
     vector<vector<Point>> components = findConnectedComponentsFree(this->Map, false, 1);
     vector<vector<Point>> componentsFilled = findConnectedComponentsFree(this->Map, false, 1, true);
 
     vector<Point>FreeSpace;
-         
-    for (int i=0; i<Map.size(); i++)
-    {
-        for (int j=0; j<Map[0].size(); j++)
-        {
-            if (Map[i][j]==0)
-                FreeSpace.push_back({j, i});
-        }
-    }
+
+    //Invader fonksiyonunu artık kullanmadığımız için gereksiz
 
     tic("YalnizForeign");
     vector<pair<Point,Point>> ForeignMatches = ForeignMatcher(components);
@@ -80,20 +75,6 @@ Point NarrowFinder::FindNearest(const vector<Point> &OtherUnits, Point point)
     return minPoint;
 }
 
-int NarrowFinder::sumElements(const vector<vector<int>>& matrix) {
-    tic("sumElements");
-    int total = 0;
-
-    for (const auto& row : matrix) {
-        for (int val : row) {
-            total += val;
-        }
-    }
-    toc("sumElements");
-
-    return total;
-}
-
 vector<pair<Point,Point>> NarrowFinder::ForeignMatcher(const vector<vector<Point>>& connectedComponents)
 {
     tic("ForeignMatcher");
@@ -110,6 +91,7 @@ vector<pair<Point,Point>> NarrowFinder::ForeignMatcher(const vector<vector<Point
         }
     }
 
+    //Foreign match sayısını burada allocate etmek yerine küçük kare kontrolünden geçenler kadar üretmek daha iyi olabilir mi?
     int NumMatches = 0;
     for (auto& i : connectedComponents)
         NumMatches += i.size();
@@ -218,43 +200,6 @@ vector<unsigned> NarrowFinder::getOtherUnits(const RTree& rtree, Point p, size_t
     return indexes;
 }
 
-vector<unsigned> NarrowFinder::getOtherUnitsEski(size_t componentIndex, const vector<pair<Point, Point>>& rects)
-{
-    tic("getOtherUnits");
-    // RTree rtree;
-    // int i = 0;
-    // for (int j = 0; j < rects.size(); j++)
-    // {
-    //     if (j == componentIndex)
-    //         continue;
-    //     Box rectBox(RPoint(rects[j].first.x, rects[j].first.y), 
-    //                 RPoint(rects[j].second.x, rects[j].second.y));
-    //     rtree.insert(make_pair(rectBox, i++));
-    // }
-    // pair<Point, Point> rect = rects[componentIndex];
-    // Box queryBox(RPoint(rect.first.x - _thresholdValue,
-    //                     rect.first.y - _thresholdValue),
-    //              RPoint(rect.second.x + _thresholdValue,
-    //                     rect.second.y + _thresholdValue));
-    
-    // std::vector<Value> result;
-    // rtree.query(bgi::intersects(queryBox), std::back_inserter(result));
-    
-    // vector<unsigned> indexes(result.size());
-    // for (int i = 0; i < result.size(); i++)
-    // {
-    //     indexes[i] = result[i].second;
-    // }
-
-    vector<unsigned> indexes;
-    for (int i = 0; i < rects.size(); i++)
-        if (i != componentIndex)
-            indexes.push_back(i);
-
-    toc("getOtherUnits");
-    return indexes;
-}
-
 vector<Point> NarrowFinder::bresenham(Point p0, Point p1) {
     tic("bresenham");
     std::vector<Point> line;
@@ -334,138 +279,119 @@ vector<vector<float>> NarrowFinder::MatchesCollisionChecker(const vector<pair<Po
     return PassageValues;
 }
 
-vector<vector<Point>> NarrowFinder::findConnectedComponents(const vector<vector<int>> &Map, Point TopLeft, Point BotRight, int ComponentValue)
-{
-    int rows = Map.size();
-    int cols = Map[0].size();
-
-    if (BotRight.x == -1)
-        BotRight = {rows, cols};
-
-    vector<vector<bool>> visited(rows, vector<bool>(cols, false));
-    vector<vector<Point>> components;
-
-    vector<Point> directions = { {0, 1}, {1, 0}, {0, -1}, {-1, 0}, {1, 1}, {-1, 1}, {-1, -1}, {1, -1} };
-
-    for (int i = TopLeft.x; i < BotRight.x; ++i) {
-        for (int j = TopLeft.y; j < BotRight.y; ++j) {
-            if (!visited[i][j] && Map[i][j] == ComponentValue) {
-                queue<Point> q;
-                vector<Point> currentComponent;
-
-                q.push({ j, i });
-                visited[i][j] = true;
-
-                while (!q.empty()) {
-                    Point current = q.front();
-                    q.pop();
-                    currentComponent.push_back(current);
-
-                    for (Point dir : directions) {
-                        int newX = current.x + dir.x;
-                        int newY = current.y + dir.y;
-
-                        if (newX >= 0 && newX < cols && newY >= 0 && newY < rows &&
-                            !visited[newY][newX] && Map[newY][newX] == ComponentValue) {
-                            visited[newY][newX] = true;
-                            q.push({ newX, newY });
-                        }
-                    }
-                }
-
-                components.push_back(currentComponent);
-            }
-        }
-    }
-
-    std::vector<int> directionsX = {0, 1, 0, -1, 1, -1, 1, -1};
-    std::vector<int> directionsY = {1, 0, -1, 0, -1, 1, 1, -1};
-    std::vector<std::vector<Point>> newComponents(components.size());
-    for (size_t i = 0; i < components.size(); i++)
-    {
-        for (auto& j : components[i])
-        {
-            for (size_t k = 0; k < directionsX.size(); k++)
-            {
-                int x = j.x + directionsX[k];
-                int y = j.y + directionsY[k];
-               
-                if (x >= Map.size() || y >= Map[x].size())
-                    continue;
-
-                if (Map[y][x] == 0)
-                {
-                    newComponents[i].push_back(j);
-                    break;
-                }
-            }
-        }
-    }
-
-    return newComponents;
-}
-
 vector<vector<Point>> NarrowFinder::findConnectedComponentsFree(const vector<vector<int>> &map, bool dir4, int ComponentValue, bool Filled, Point refValue)
 {
-    tic("findConnectedComponentsFree");
-    int cols = map[0].size();
+    tic("findConnectedComponents");
     int rows = map.size();
+    int cols = map[0].size();
 
-    std::vector<std::vector<bool>> visited(rows, std::vector<bool>(cols, false));
-    std::vector<std::vector<Point>> components;
+    // 8 bit unsigned integer tek kanal (grayscale) bir matris oluşturur.
+    cv::Mat img(rows, cols, CV_8UC1);
 
-    vector<Point> directions;
+    for(int i = 0; i < rows; i++) {
+        for(int j = 0; j < cols; j++) {
+            img.at<uchar>(i, j) = map[i][j] * 255; // 1 değerlerini 255 yapar
+        }
+    }
 
-    if (dir4)
-        directions = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
-    else
-        directions = { {0, 1}, {1, 0}, {0, -1}, {-1, 0}, {1, 1}, {-1, 1}, {-1, -1}, {1, -1} };
+    if (ComponentValue == 0)
+        cv::bitwise_not(img, img);
 
-    for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) {
-            if (!visited[i][j] && map[i][j] == ComponentValue) {
-                std::queue<Point> q;
-                std::vector<Point> currentComponent;
+    cv::Mat labels;
+    int num_labels = cv::connectedComponents(img, labels, dir4 ? 4 : 8, CV_32S, cv::CCL_DEFAULT);
 
-                q.push({j, i});
-                visited[i][j] = true;
+    vector<vector<Point>> connected_components(num_labels-1);
 
-                while (!q.empty()) {
-                    Point current = q.front();
-                    q.pop();
-                    currentComponent.push_back({current.x + refValue.x, current.y + refValue.y});
+    int lrows = labels.rows;
+    int lcols = labels.cols;
 
-                    for (Point dir : directions) {
-                        int newX = current.x + dir.x;
-                        int newY = current.y + dir.y;
-
-                        if (newX >= 0 && newX < cols && newY >= 0 && newY < rows &&
-                            !visited[newY][newX] && map[newY][newX] == ComponentValue) {
-                            visited[newY][newX] = true;
-                            q.push({newX, newY});
-                        }
-                    }
-                }
-                components.push_back(currentComponent);
+    // const int* ptr;
+    for(int y = 0; y < lrows; y++) {
+        for(int x = 0; x < lcols; x++) {
+            int label = labels.at<int>(y, x);
+            if(label > 0) { // 0 arkaplan etiketidir.
+                connected_components[label-1].push_back({x + refValue.x, y + refValue.y});
             }
         }
     }
 
     if (!Filled)
     {
-        vector<vector<Point>> newComponents(components.size());
+        vector<vector<Point>> newComponents(connected_components.size());
         for (int i = 0; i < newComponents.size(); i++)
         {
-            newComponents[i] = BorderPolygon(map, components[i], ComponentValue, refValue);
+            newComponents[i] = BorderPolygon(map, connected_components[i], ComponentValue, refValue);
         }
 
-        toc("findConnectedComponentsFree");
+        toc("findConnectedComponents");
         return newComponents;
     }
 
-    toc("findConnectedComponentsFree");
-    return components;
+    toc("findConnectedComponents");
+    return connected_components;
 }
+
+//vector<vector<Point>> NarrowFinder::findConnectedComponentsFree(const vector<vector<int>> &map, bool dir4, int ComponentValue, bool Filled, Point refValue)
+//{
+//    tic("findConnectedComponentsFree");
+//    int cols = map[0].size();
+//    int rows = map.size();
+//
+//    std::vector<std::vector<bool>> visited(rows, std::vector<bool>(cols, false));
+//    std::vector<std::vector<Point>> components;
+//
+//    vector<Point> directions;
+//
+//    if (dir4)
+//        directions = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
+//    else
+//        directions = { {0, 1}, {1, 0}, {0, -1}, {-1, 0}, {1, 1}, {-1, 1}, {-1, -1}, {1, -1} };
+//
+//    for (int i = 0; i < rows; i++) {
+//        for (int j = 0; j < cols; j++) {
+//            if (!visited[i][j] && map[i][j] == ComponentValue) {
+//                std::queue<Point> q;
+//                std::vector<Point> currentComponent;
+//
+//                q.push({j, i});
+//                visited[i][j] = true;
+//
+//                while (!q.empty()) {
+//                    Point current = q.front();
+//                    q.pop();
+//                    currentComponent.push_back({current.x + refValue.x, current.y + refValue.y});
+//
+//                    for (Point dir : directions) {
+//                        int newX = current.x + dir.x;
+//                        int newY = current.y + dir.y;
+//
+//                        if (newX >= 0 && newX < cols && newY >= 0 && newY < rows &&
+//                            !visited[newY][newX] && map[newY][newX] == ComponentValue) {
+//                            visited[newY][newX] = true;
+//                            q.push({newX, newY});
+//                        }
+//                    }
+//                }
+//                components.push_back(currentComponent);
+//            }
+//        }
+//    }
+//
+//    if (!Filled)
+//    {
+//        vector<vector<Point>> newComponents(components.size());
+//        for (int i = 0; i < newComponents.size(); i++)
+//        {
+//            newComponents[i] = BorderPolygon(map, components[i], ComponentValue, refValue);
+//        }
+//
+//        toc("findConnectedComponentsFree");
+//        return newComponents;
+//    }
+//
+//    toc("findConnectedComponentsFree");
+//    return components;
+//}
 
 vector<Point> NarrowFinder::BorderPolygon(const vector<vector<int>> &map, const vector<Point>& component, int ComponentValue, Point refValue)
 {
@@ -503,7 +429,8 @@ vector<pair<Point,Point>> NarrowFinder::InvaderOwnMatcher(const vector<Point> &c
     vector<Point> Convex = ConvexFinder::ConvexHull(FreeSpace);
     if (Convex.size() == 0)
         cout << "Convex suan 0, Freespace: " << FreeSpace.size() << endl;
-    pair<vector<Point>, vector<Point>> PolygonPoints = ConvexFinder::ClusterConvexPolygon(Convex, connectedComponent);    
+    pair<vector<Point>, vector<Point>> PolygonPoints;
+    ConvexFinder::ClusterConvexPolygon(Convex, connectedComponent, PolygonPoints);
     toc("invader1");
 
     vector<vector<int>> InsidePointMap(Map.size(), vector<int>(Map[0].size(),0));

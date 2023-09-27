@@ -19,6 +19,7 @@ public:
     std::vector<std::vector<int>> getData() const { return data; }
 
     static void writeBoolMatrixToPNG(const std::vector<std::vector<bool>>& data, const std::string& filename);
+    static void writeBoolMatrixToPNG(const std::vector<std::vector<int>>& data, const std::string& filename);
 };
 
 #endif

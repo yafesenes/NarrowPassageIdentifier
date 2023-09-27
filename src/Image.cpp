@@ -55,6 +55,31 @@ void Image::writeBoolMatrixToPNG(const std::vector<std::vector<bool>>& data, con
     }
 }
 
+void Image::writeBoolMatrixToPNG(const std::vector<std::vector<int>>& data, const std::string& filename) {
+    int width = data[0].size();
+    int height = data.size();
+
+    // RGBA formatında raw veri oluştur
+    std::vector<unsigned char> raw_data(height * width * 4);
+
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            int index = (y * width + x) * 4;
+
+            // Siyah-beyaz renk kodlaması
+            unsigned char color = data[y][x] == 0 ? 255 : 0;          
+
+            raw_data[index] = color;     // R
+            raw_data[index + 1] = color; // G
+            raw_data[index + 2] = color; // B
+            raw_data[index + 3] = 255;   // A (Tam saydamlık)
+        }
+    }
+
+    if (!stbi_write_png(filename.c_str(), width, height, 4, raw_data.data(), width * 4)) {
+        std::cerr << "Error writing image using stb_image_write." << std::endl;
+    }
+}
 
 int Image::getWidth() const { 
     return width; 
